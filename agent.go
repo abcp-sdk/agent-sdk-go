@@ -29,9 +29,29 @@ type (
 	ForkRequest          = agentv1.ForkRequest
 	GetFileRequest       = agentv1.GetFileRequest
 	GetFileMetaRequest   = agentv1.GetFileMetaRequest
+
+	// Admin surface (tenant + token lifecycle).
+	Tenant                    = agentv1.Tenant
+	TenantToken               = agentv1.TenantToken
+	ListTenantsRequest        = agentv1.ListTenantsRequest
+	CreateTenantRequest       = agentv1.CreateTenantRequest
+	CreateTenantResponse      = agentv1.CreateTenantResponse
+	UpdateTenantRequest       = agentv1.UpdateTenantRequest
+	DeleteTenantRequest       = agentv1.DeleteTenantRequest
+	IssueTenantTokenRequest   = agentv1.IssueTenantTokenRequest
+	IssueTenantTokenResponse  = agentv1.IssueTenantTokenResponse
+	ListTenantTokensRequest   = agentv1.ListTenantTokensRequest
+	RevokeTenantTokenRequest  = agentv1.RevokeTenantTokenRequest
+	RotateTenantTokenRequest  = agentv1.RotateTenantTokenRequest
+	RotateTenantTokenResponse = agentv1.RotateTenantTokenResponse
 )
 
 var (
 	// NewAgentServiceClient is the generated Connect client constructor.
 	NewAgentServiceClient = agentv1connect.NewAgentServiceClient
+
+	// NewAdminServiceClient is the generated Connect client constructor for the
+	// admin surface (tenant + token lifecycle). Authenticate it with the static
+	// admin bearer token.
+	NewAdminServiceClient = agentv1connect.NewAdminServiceClient
 )
