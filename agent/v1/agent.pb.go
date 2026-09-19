@@ -1320,12 +1320,14 @@ func (x *WatchSessionsResponse) GetSnapshot() bool {
 	return false
 }
 
-// A file reference (attachment).
+// A file reference (attachment). `mime` is NOT carried: the agent DERIVES the
+// content type from the bytes at ingest time (magic-byte sniff + media probe)
+// and resolves it from the stored record, so a caller can neither mislabel a
+// file nor need a content-type library of its own.
 type FileRef struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Code          string                 `protobuf:"bytes,1,opt,name=code,proto3" json:"code,omitempty"`
 	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
-	Mime          string                 `protobuf:"bytes,3,opt,name=mime,proto3" json:"mime,omitempty"`
 	Size          int32                  `protobuf:"varint,4,opt,name=size,proto3" json:"size,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -1371,13 +1373,6 @@ func (x *FileRef) GetCode() string {
 func (x *FileRef) GetName() string {
 	if x != nil {
 		return x.Name
-	}
-	return ""
-}
-
-func (x *FileRef) GetMime() string {
-	if x != nil {
-		return x.Mime
 	}
 	return ""
 }
@@ -4666,10 +4661,13 @@ func (x *UploadFileRequest) GetData() string {
 	return ""
 }
 
+// `mime` is the SERVER-DERIVED content type of the stored file (see
+// IngestFileResponse); the caller never supplies one.
 type UploadFileResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Ok            bool                   `protobuf:"varint,1,opt,name=ok,proto3" json:"ok,omitempty"`
 	Code          string                 `protobuf:"bytes,2,opt,name=code,proto3" json:"code,omitempty"`
+	Mime          string                 `protobuf:"bytes,3,opt,name=mime,proto3" json:"mime,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -4718,12 +4716,18 @@ func (x *UploadFileResponse) GetCode() string {
 	return ""
 }
 
+func (x *UploadFileResponse) GetMime() string {
+	if x != nil {
+		return x.Mime
+	}
+	return ""
+}
+
 type IngestFileRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Code          string                 `protobuf:"bytes,1,opt,name=code,proto3" json:"code,omitempty"` // optional; empty => server mints one
 	Data          []byte                 `protobuf:"bytes,2,opt,name=data,proto3" json:"data,omitempty"`
 	Name          string                 `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
-	Mime          string                 `protobuf:"bytes,4,opt,name=mime,proto3" json:"mime,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -4779,17 +4783,14 @@ func (x *IngestFileRequest) GetName() string {
 	return ""
 }
 
-func (x *IngestFileRequest) GetMime() string {
-	if x != nil {
-		return x.Mime
-	}
-	return ""
-}
-
+// `mime` is the content type the agent DERIVED from the bytes (magic-byte
+// sniff, with an ffprobe refinement for media). It is authoritative: clients
+// render from it rather than asserting their own guess.
 type IngestFileResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Ok            bool                   `protobuf:"varint,1,opt,name=ok,proto3" json:"ok,omitempty"`
 	Code          string                 `protobuf:"bytes,2,opt,name=code,proto3" json:"code,omitempty"`
+	Mime          string                 `protobuf:"bytes,3,opt,name=mime,proto3" json:"mime,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -4834,6 +4835,13 @@ func (x *IngestFileResponse) GetOk() bool {
 func (x *IngestFileResponse) GetCode() string {
 	if x != nil {
 		return x.Code
+	}
+	return ""
+}
+
+func (x *IngestFileResponse) GetMime() string {
+	if x != nil {
+		return x.Mime
 	}
 	return ""
 }
@@ -6393,12 +6401,11 @@ const file_agent_v1_agent_proto_rawDesc = "" +
 	"\x15WatchSessionsResponse\x12+\n" +
 	"\aupserts\x18\x01 \x03(\v2\x11.agent.v1.SessionR\aupserts\x12\x18\n" +
 	"\aremoved\x18\x02 \x03(\tR\aremoved\x12\x1a\n" +
-	"\bsnapshot\x18\x03 \x01(\bR\bsnapshot\"Y\n" +
+	"\bsnapshot\x18\x03 \x01(\bR\bsnapshot\"K\n" +
 	"\aFileRef\x12\x12\n" +
 	"\x04code\x18\x01 \x01(\tR\x04code\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x12\n" +
-	"\x04mime\x18\x03 \x01(\tR\x04mime\x12\x12\n" +
-	"\x04size\x18\x04 \x01(\x05R\x04size\"\x15\n" +
+	"\x04size\x18\x04 \x01(\x05R\x04sizeJ\x04\b\x03\x10\x04\"\x15\n" +
 	"\x13ListSessionsRequest\"E\n" +
 	"\x14ListSessionsResponse\x12-\n" +
 	"\bsessions\x18\x01 \x03(\v2\x11.agent.v1.SessionR\bsessions\"\xc6\x01\n" +
@@ -6587,18 +6594,19 @@ const file_agent_v1_agent_proto_rawDesc = "" +
 	"\x02ok\x18\x01 \x01(\bR\x02ok\"N\n" +
 	"\x11UploadFileRequest\x12%\n" +
 	"\x04file\x18\x01 \x01(\v2\x11.agent.v1.FileRefR\x04file\x12\x12\n" +
-	"\x04data\x18\x02 \x01(\tR\x04data\"8\n" +
+	"\x04data\x18\x02 \x01(\tR\x04data\"L\n" +
 	"\x12UploadFileResponse\x12\x0e\n" +
 	"\x02ok\x18\x01 \x01(\bR\x02ok\x12\x12\n" +
-	"\x04code\x18\x02 \x01(\tR\x04code\"c\n" +
+	"\x04code\x18\x02 \x01(\tR\x04code\x12\x12\n" +
+	"\x04mime\x18\x03 \x01(\tR\x04mime\"U\n" +
 	"\x11IngestFileRequest\x12\x12\n" +
 	"\x04code\x18\x01 \x01(\tR\x04code\x12\x12\n" +
 	"\x04data\x18\x02 \x01(\fR\x04data\x12\x12\n" +
-	"\x04name\x18\x03 \x01(\tR\x04name\x12\x12\n" +
-	"\x04mime\x18\x04 \x01(\tR\x04mime\"8\n" +
+	"\x04name\x18\x03 \x01(\tR\x04nameJ\x04\b\x04\x10\x05\"L\n" +
 	"\x12IngestFileResponse\x12\x0e\n" +
 	"\x02ok\x18\x01 \x01(\bR\x02ok\x12\x12\n" +
-	"\x04code\x18\x02 \x01(\tR\x04code\"$\n" +
+	"\x04code\x18\x02 \x01(\tR\x04code\x12\x12\n" +
+	"\x04mime\x18\x03 \x01(\tR\x04mime\"$\n" +
 	"\x0eGetFileRequest\x12\x12\n" +
 	"\x04code\x18\x01 \x01(\tR\x04code\"M\n" +
 	"\x0fGetFileResponse\x12\x12\n" +
