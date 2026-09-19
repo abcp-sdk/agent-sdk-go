@@ -135,6 +135,9 @@ const (
 	// AgentServiceGetFileMetaProcedure is the fully-qualified name of the AgentService's GetFileMeta
 	// RPC.
 	AgentServiceGetFileMetaProcedure = "/agent.v1.AgentService/GetFileMeta"
+	// AgentServiceGetFileStreamProcedure is the fully-qualified name of the AgentService's
+	// GetFileStream RPC.
+	AgentServiceGetFileStreamProcedure = "/agent.v1.AgentService/GetFileStream"
 	// AgentServiceGetAgentConfigProcedure is the fully-qualified name of the AgentService's
 	// GetAgentConfig RPC.
 	AgentServiceGetAgentConfigProcedure = "/agent.v1.AgentService/GetAgentConfig"
@@ -204,6 +207,7 @@ type AgentServiceClient interface {
 	IngestFile(context.Context, *connect.Request[v1.IngestFileRequest]) (*connect.Response[v1.IngestFileResponse], error)
 	GetFile(context.Context, *connect.Request[v1.GetFileRequest]) (*connect.Response[v1.GetFileResponse], error)
 	GetFileMeta(context.Context, *connect.Request[v1.GetFileMetaRequest]) (*connect.Response[v1.GetFileMetaResponse], error)
+	GetFileStream(context.Context, *connect.Request[v1.GetFileRequest]) (*connect.ServerStreamForClient[v1.FileChunk], error)
 	GetAgentConfig(context.Context, *connect.Request[v1.GetAgentConfigRequest]) (*connect.Response[v1.GetAgentConfigResponse], error)
 }
 
@@ -446,6 +450,12 @@ func NewAgentServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithSchema(agentServiceMethods.ByName("GetFileMeta")),
 			connect.WithClientOptions(opts...),
 		),
+		getFileStream: connect.NewClient[v1.GetFileRequest, v1.FileChunk](
+			httpClient,
+			baseURL+AgentServiceGetFileStreamProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("GetFileStream")),
+			connect.WithClientOptions(opts...),
+		),
 		getAgentConfig: connect.NewClient[v1.GetAgentConfigRequest, v1.GetAgentConfigResponse](
 			httpClient,
 			baseURL+AgentServiceGetAgentConfigProcedure,
@@ -495,6 +505,7 @@ type agentServiceClient struct {
 	ingestFile           *connect.Client[v1.IngestFileRequest, v1.IngestFileResponse]
 	getFile              *connect.Client[v1.GetFileRequest, v1.GetFileResponse]
 	getFileMeta          *connect.Client[v1.GetFileMetaRequest, v1.GetFileMetaResponse]
+	getFileStream        *connect.Client[v1.GetFileRequest, v1.FileChunk]
 	getAgentConfig       *connect.Client[v1.GetAgentConfigRequest, v1.GetAgentConfigResponse]
 }
 
@@ -688,6 +699,11 @@ func (c *agentServiceClient) GetFileMeta(ctx context.Context, req *connect.Reque
 	return c.getFileMeta.CallUnary(ctx, req)
 }
 
+// GetFileStream calls agent.v1.AgentService.GetFileStream.
+func (c *agentServiceClient) GetFileStream(ctx context.Context, req *connect.Request[v1.GetFileRequest]) (*connect.ServerStreamForClient[v1.FileChunk], error) {
+	return c.getFileStream.CallServerStream(ctx, req)
+}
+
 // GetAgentConfig calls agent.v1.AgentService.GetAgentConfig.
 func (c *agentServiceClient) GetAgentConfig(ctx context.Context, req *connect.Request[v1.GetAgentConfigRequest]) (*connect.Response[v1.GetAgentConfigResponse], error) {
 	return c.getAgentConfig.CallUnary(ctx, req)
@@ -733,6 +749,7 @@ type AgentServiceHandler interface {
 	IngestFile(context.Context, *connect.Request[v1.IngestFileRequest]) (*connect.Response[v1.IngestFileResponse], error)
 	GetFile(context.Context, *connect.Request[v1.GetFileRequest]) (*connect.Response[v1.GetFileResponse], error)
 	GetFileMeta(context.Context, *connect.Request[v1.GetFileMetaRequest]) (*connect.Response[v1.GetFileMetaResponse], error)
+	GetFileStream(context.Context, *connect.Request[v1.GetFileRequest], *connect.ServerStream[v1.FileChunk]) error
 	GetAgentConfig(context.Context, *connect.Request[v1.GetAgentConfigRequest]) (*connect.Response[v1.GetAgentConfigResponse], error)
 }
 
@@ -971,6 +988,12 @@ func NewAgentServiceHandler(svc AgentServiceHandler, opts ...connect.HandlerOpti
 		connect.WithSchema(agentServiceMethods.ByName("GetFileMeta")),
 		connect.WithHandlerOptions(opts...),
 	)
+	agentServiceGetFileStreamHandler := connect.NewServerStreamHandler(
+		AgentServiceGetFileStreamProcedure,
+		svc.GetFileStream,
+		connect.WithSchema(agentServiceMethods.ByName("GetFileStream")),
+		connect.WithHandlerOptions(opts...),
+	)
 	agentServiceGetAgentConfigHandler := connect.NewUnaryHandler(
 		AgentServiceGetAgentConfigProcedure,
 		svc.GetAgentConfig,
@@ -1055,6 +1078,8 @@ func NewAgentServiceHandler(svc AgentServiceHandler, opts ...connect.HandlerOpti
 			agentServiceGetFileHandler.ServeHTTP(w, r)
 		case AgentServiceGetFileMetaProcedure:
 			agentServiceGetFileMetaHandler.ServeHTTP(w, r)
+		case AgentServiceGetFileStreamProcedure:
+			agentServiceGetFileStreamHandler.ServeHTTP(w, r)
 		case AgentServiceGetAgentConfigProcedure:
 			agentServiceGetAgentConfigHandler.ServeHTTP(w, r)
 		default:
@@ -1216,6 +1241,10 @@ func (UnimplementedAgentServiceHandler) GetFile(context.Context, *connect.Reques
 
 func (UnimplementedAgentServiceHandler) GetFileMeta(context.Context, *connect.Request[v1.GetFileMetaRequest]) (*connect.Response[v1.GetFileMetaResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("agent.v1.AgentService.GetFileMeta is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) GetFileStream(context.Context, *connect.Request[v1.GetFileRequest], *connect.ServerStream[v1.FileChunk]) error {
+	return connect.NewError(connect.CodeUnimplemented, errors.New("agent.v1.AgentService.GetFileStream is not implemented"))
 }
 
 func (UnimplementedAgentServiceHandler) GetAgentConfig(context.Context, *connect.Request[v1.GetAgentConfigRequest]) (*connect.Response[v1.GetAgentConfigResponse], error) {
