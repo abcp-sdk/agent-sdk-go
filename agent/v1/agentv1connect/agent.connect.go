@@ -41,6 +41,9 @@ const (
 const (
 	// AgentServiceHealthProcedure is the fully-qualified name of the AgentService's Health RPC.
 	AgentServiceHealthProcedure = "/agent.v1.AgentService/Health"
+	// AgentServiceGetIdentityProcedure is the fully-qualified name of the AgentService's GetIdentity
+	// RPC.
+	AgentServiceGetIdentityProcedure = "/agent.v1.AgentService/GetIdentity"
 	// AgentServiceListSessionsProcedure is the fully-qualified name of the AgentService's ListSessions
 	// RPC.
 	AgentServiceListSessionsProcedure = "/agent.v1.AgentService/ListSessions"
@@ -170,6 +173,7 @@ const (
 // AgentServiceClient is a client for the agent.v1.AgentService service.
 type AgentServiceClient interface {
 	Health(context.Context, *connect.Request[v1.HealthRequest]) (*connect.Response[v1.HealthResponse], error)
+	GetIdentity(context.Context, *connect.Request[v1.GetIdentityRequest]) (*connect.Response[v1.GetIdentityResponse], error)
 	ListSessions(context.Context, *connect.Request[v1.ListSessionsRequest]) (*connect.Response[v1.ListSessionsResponse], error)
 	CreateSession(context.Context, *connect.Request[v1.CreateSessionRequest]) (*connect.Response[v1.CreateSessionResponse], error)
 	GetSession(context.Context, *connect.Request[v1.GetSessionRequest]) (*connect.Response[v1.GetSessionResponse], error)
@@ -226,6 +230,12 @@ func NewAgentServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			httpClient,
 			baseURL+AgentServiceHealthProcedure,
 			connect.WithSchema(agentServiceMethods.ByName("Health")),
+			connect.WithClientOptions(opts...),
+		),
+		getIdentity: connect.NewClient[v1.GetIdentityRequest, v1.GetIdentityResponse](
+			httpClient,
+			baseURL+AgentServiceGetIdentityProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("GetIdentity")),
 			connect.WithClientOptions(opts...),
 		),
 		listSessions: connect.NewClient[v1.ListSessionsRequest, v1.ListSessionsResponse](
@@ -468,6 +478,7 @@ func NewAgentServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 // agentServiceClient implements AgentServiceClient.
 type agentServiceClient struct {
 	health               *connect.Client[v1.HealthRequest, v1.HealthResponse]
+	getIdentity          *connect.Client[v1.GetIdentityRequest, v1.GetIdentityResponse]
 	listSessions         *connect.Client[v1.ListSessionsRequest, v1.ListSessionsResponse]
 	createSession        *connect.Client[v1.CreateSessionRequest, v1.CreateSessionResponse]
 	getSession           *connect.Client[v1.GetSessionRequest, v1.GetSessionResponse]
@@ -512,6 +523,11 @@ type agentServiceClient struct {
 // Health calls agent.v1.AgentService.Health.
 func (c *agentServiceClient) Health(ctx context.Context, req *connect.Request[v1.HealthRequest]) (*connect.Response[v1.HealthResponse], error) {
 	return c.health.CallUnary(ctx, req)
+}
+
+// GetIdentity calls agent.v1.AgentService.GetIdentity.
+func (c *agentServiceClient) GetIdentity(ctx context.Context, req *connect.Request[v1.GetIdentityRequest]) (*connect.Response[v1.GetIdentityResponse], error) {
+	return c.getIdentity.CallUnary(ctx, req)
 }
 
 // ListSessions calls agent.v1.AgentService.ListSessions.
@@ -712,6 +728,7 @@ func (c *agentServiceClient) GetAgentConfig(ctx context.Context, req *connect.Re
 // AgentServiceHandler is an implementation of the agent.v1.AgentService service.
 type AgentServiceHandler interface {
 	Health(context.Context, *connect.Request[v1.HealthRequest]) (*connect.Response[v1.HealthResponse], error)
+	GetIdentity(context.Context, *connect.Request[v1.GetIdentityRequest]) (*connect.Response[v1.GetIdentityResponse], error)
 	ListSessions(context.Context, *connect.Request[v1.ListSessionsRequest]) (*connect.Response[v1.ListSessionsResponse], error)
 	CreateSession(context.Context, *connect.Request[v1.CreateSessionRequest]) (*connect.Response[v1.CreateSessionResponse], error)
 	GetSession(context.Context, *connect.Request[v1.GetSessionRequest]) (*connect.Response[v1.GetSessionResponse], error)
@@ -764,6 +781,12 @@ func NewAgentServiceHandler(svc AgentServiceHandler, opts ...connect.HandlerOpti
 		AgentServiceHealthProcedure,
 		svc.Health,
 		connect.WithSchema(agentServiceMethods.ByName("Health")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agentServiceGetIdentityHandler := connect.NewUnaryHandler(
+		AgentServiceGetIdentityProcedure,
+		svc.GetIdentity,
+		connect.WithSchema(agentServiceMethods.ByName("GetIdentity")),
 		connect.WithHandlerOptions(opts...),
 	)
 	agentServiceListSessionsHandler := connect.NewUnaryHandler(
@@ -1004,6 +1027,8 @@ func NewAgentServiceHandler(svc AgentServiceHandler, opts ...connect.HandlerOpti
 		switch r.URL.Path {
 		case AgentServiceHealthProcedure:
 			agentServiceHealthHandler.ServeHTTP(w, r)
+		case AgentServiceGetIdentityProcedure:
+			agentServiceGetIdentityHandler.ServeHTTP(w, r)
 		case AgentServiceListSessionsProcedure:
 			agentServiceListSessionsHandler.ServeHTTP(w, r)
 		case AgentServiceCreateSessionProcedure:
@@ -1093,6 +1118,10 @@ type UnimplementedAgentServiceHandler struct{}
 
 func (UnimplementedAgentServiceHandler) Health(context.Context, *connect.Request[v1.HealthRequest]) (*connect.Response[v1.HealthResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("agent.v1.AgentService.Health is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) GetIdentity(context.Context, *connect.Request[v1.GetIdentityRequest]) (*connect.Response[v1.GetIdentityResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("agent.v1.AgentService.GetIdentity is not implemented"))
 }
 
 func (UnimplementedAgentServiceHandler) ListSessions(context.Context, *connect.Request[v1.ListSessionsRequest]) (*connect.Response[v1.ListSessionsResponse], error) {
