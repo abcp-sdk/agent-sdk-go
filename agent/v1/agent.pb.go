@@ -631,7 +631,7 @@ type Provider struct {
 	Models     []*ProviderModel       `protobuf:"bytes,6,rep,name=models,proto3" json:"models,omitempty"`
 	UpdatedAt  string                 `protobuf:"bytes,7,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
 	// The single modality this provider serves (text | image | video | speech |
-	// transcription | embedding | rerank | realtime). New field (no renumber).
+	// transcription | embedding | rerank | realtime).
 	Capability    string `protobuf:"bytes,8,opt,name=capability,proto3" json:"capability,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -724,8 +724,8 @@ func (x *Provider) GetCapability() string {
 }
 
 // Provider model entry. All of a provider's models share the provider's
-// `capability`; `model_type` mirrors it (kept for wire compatibility and for
-// clients that read the model directly).
+// `capability`; `model_type` mirrors it so a client can read the modality
+// directly from the model.
 //
 //   - text      -> context_limit (> 0) REQUIRED (drives compaction budgets)
 //   - non-text  -> context_limit MUST be 0 (not a chat model)
@@ -1328,7 +1328,7 @@ type FileRef struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Code          string                 `protobuf:"bytes,1,opt,name=code,proto3" json:"code,omitempty"`
 	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
-	Size          int32                  `protobuf:"varint,4,opt,name=size,proto3" json:"size,omitempty"`
+	Size          int32                  `protobuf:"varint,3,opt,name=size,proto3" json:"size,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2607,16 +2607,9 @@ type UpdateSettingsRequest struct {
 	Id     string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	Model  string                 `protobuf:"bytes,2,opt,name=model,proto3" json:"model,omitempty"`
 	Preset string                 `protobuf:"bytes,3,opt,name=preset,proto3" json:"preset,omitempty"`
-	// Optional: omitted means "inherit (preset / default)"; an explicit value
-	// must be > 0 (0 is rejected).
-	MaxTurns     *int32 `protobuf:"varint,4,opt,name=max_turns,json=maxTurns,proto3,oneof" json:"max_turns,omitempty"`
-	SystemPrompt string `protobuf:"bytes,5,opt,name=system_prompt,json=systemPrompt,proto3" json:"system_prompt,omitempty"`
-	Locale       string `protobuf:"bytes,6,opt,name=locale,proto3" json:"locale,omitempty"`
+	Locale string                 `protobuf:"bytes,4,opt,name=locale,proto3" json:"locale,omitempty"`
 	// Selected reasoning variant id (empty clears it).
-	Variant string `protobuf:"bytes,7,opt,name=variant,proto3" json:"variant,omitempty"`
-	// Generic grouping key (empty clears it). Included for completeness; the
-	// subsession flow sets it at creation time.
-	Group         *string `protobuf:"bytes,8,opt,name=group,proto3,oneof" json:"group,omitempty"`
+	Variant       string `protobuf:"bytes,5,opt,name=variant,proto3" json:"variant,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2672,20 +2665,6 @@ func (x *UpdateSettingsRequest) GetPreset() string {
 	return ""
 }
 
-func (x *UpdateSettingsRequest) GetMaxTurns() int32 {
-	if x != nil && x.MaxTurns != nil {
-		return *x.MaxTurns
-	}
-	return 0
-}
-
-func (x *UpdateSettingsRequest) GetSystemPrompt() string {
-	if x != nil {
-		return x.SystemPrompt
-	}
-	return ""
-}
-
 func (x *UpdateSettingsRequest) GetLocale() string {
 	if x != nil {
 		return x.Locale
@@ -2696,13 +2675,6 @@ func (x *UpdateSettingsRequest) GetLocale() string {
 func (x *UpdateSettingsRequest) GetVariant() string {
 	if x != nil {
 		return x.Variant
-	}
-	return ""
-}
-
-func (x *UpdateSettingsRequest) GetGroup() string {
-	if x != nil && x.Group != nil {
-		return *x.Group
 	}
 	return ""
 }
@@ -6503,11 +6475,11 @@ const file_agent_v1_agent_proto_rawDesc = "" +
 	"\x15WatchSessionsResponse\x12+\n" +
 	"\aupserts\x18\x01 \x03(\v2\x11.agent.v1.SessionR\aupserts\x12\x18\n" +
 	"\aremoved\x18\x02 \x03(\tR\aremoved\x12\x1a\n" +
-	"\bsnapshot\x18\x03 \x01(\bR\bsnapshot\"K\n" +
+	"\bsnapshot\x18\x03 \x01(\bR\bsnapshot\"E\n" +
 	"\aFileRef\x12\x12\n" +
 	"\x04code\x18\x01 \x01(\tR\x04code\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x12\n" +
-	"\x04size\x18\x04 \x01(\x05R\x04sizeJ\x04\b\x03\x10\x04\"\x15\n" +
+	"\x04size\x18\x03 \x01(\x05R\x04size\"\x15\n" +
 	"\x13ListSessionsRequest\"E\n" +
 	"\x14ListSessionsResponse\x12-\n" +
 	"\bsessions\x18\x01 \x03(\v2\x11.agent.v1.SessionR\bsessions\"\xc6\x01\n" +
@@ -6578,19 +6550,13 @@ const file_agent_v1_agent_proto_rawDesc = "" +
 	"\x02id\x18\x01 \x01(\tR\x02id\"S\n" +
 	"\x0fMailboxResponse\x12\x0e\n" +
 	"\x02ok\x18\x01 \x01(\bR\x02ok\x120\n" +
-	"\amailbox\x18\x02 \x03(\v2\x16.agent.v1.MailboxEntryR\amailbox\"\x81\x02\n" +
+	"\amailbox\x18\x02 \x03(\v2\x16.agent.v1.MailboxEntryR\amailbox\"\x87\x01\n" +
 	"\x15UpdateSettingsRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x14\n" +
 	"\x05model\x18\x02 \x01(\tR\x05model\x12\x16\n" +
-	"\x06preset\x18\x03 \x01(\tR\x06preset\x12 \n" +
-	"\tmax_turns\x18\x04 \x01(\x05H\x00R\bmaxTurns\x88\x01\x01\x12#\n" +
-	"\rsystem_prompt\x18\x05 \x01(\tR\fsystemPrompt\x12\x16\n" +
-	"\x06locale\x18\x06 \x01(\tR\x06locale\x12\x18\n" +
-	"\avariant\x18\a \x01(\tR\avariant\x12\x19\n" +
-	"\x05group\x18\b \x01(\tH\x01R\x05group\x88\x01\x01B\f\n" +
-	"\n" +
-	"_max_turnsB\b\n" +
-	"\x06_group\"E\n" +
+	"\x06preset\x18\x03 \x01(\tR\x06preset\x12\x16\n" +
+	"\x06locale\x18\x04 \x01(\tR\x06locale\x12\x18\n" +
+	"\avariant\x18\x05 \x01(\tR\avariant\"E\n" +
 	"\x16UpdateSettingsResponse\x12+\n" +
 	"\asession\x18\x01 \x01(\v2\x11.agent.v1.SessionR\asession\"\"\n" +
 	"\x10InterruptRequest\x12\x0e\n" +
@@ -6700,11 +6666,11 @@ const file_agent_v1_agent_proto_rawDesc = "" +
 	"\x12UploadFileResponse\x12\x0e\n" +
 	"\x02ok\x18\x01 \x01(\bR\x02ok\x12\x12\n" +
 	"\x04code\x18\x02 \x01(\tR\x04code\x12\x12\n" +
-	"\x04mime\x18\x03 \x01(\tR\x04mime\"U\n" +
+	"\x04mime\x18\x03 \x01(\tR\x04mime\"O\n" +
 	"\x11IngestFileRequest\x12\x12\n" +
 	"\x04code\x18\x01 \x01(\tR\x04code\x12\x12\n" +
 	"\x04data\x18\x02 \x01(\fR\x04data\x12\x12\n" +
-	"\x04name\x18\x03 \x01(\tR\x04nameJ\x04\b\x04\x10\x05\"L\n" +
+	"\x04name\x18\x03 \x01(\tR\x04name\"L\n" +
 	"\x12IngestFileResponse\x12\x0e\n" +
 	"\x02ok\x18\x01 \x01(\bR\x02ok\x12\x12\n" +
 	"\x04code\x18\x02 \x01(\tR\x04code\x12\x12\n" +
@@ -7154,7 +7120,6 @@ func file_agent_v1_agent_proto_init() {
 	if File_agent_v1_agent_proto != nil {
 		return
 	}
-	file_agent_v1_agent_proto_msgTypes[39].OneofWrappers = []any{}
 	file_agent_v1_agent_proto_msgTypes[87].OneofWrappers = []any{}
 	file_agent_v1_agent_proto_msgTypes[101].OneofWrappers = []any{}
 	type x struct{}
