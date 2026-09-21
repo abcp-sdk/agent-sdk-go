@@ -2506,9 +2506,17 @@ func (x *StateResponse) GetState() *structpb.Struct {
 	return nil
 }
 
+// Mailbox listing is NEWEST-FIRST and paged BACKWARD (older) for infinite
+// scroll: the client holds the newest page and passes the oldest entry it has
+// as `before` to fetch the next-older page.
 type MailboxRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Id    string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	// Max entries to return (0 => server default).
+	Limit int32 `protobuf:"varint,2,opt,name=limit,proto3" json:"limit,omitempty"`
+	// Backward cursor (exclusive): return entries OLDER than this entry id.
+	// Empty => the newest page.
+	Before        string `protobuf:"bytes,3,opt,name=before,proto3" json:"before,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2550,10 +2558,26 @@ func (x *MailboxRequest) GetId() string {
 	return ""
 }
 
+func (x *MailboxRequest) GetLimit() int32 {
+	if x != nil {
+		return x.Limit
+	}
+	return 0
+}
+
+func (x *MailboxRequest) GetBefore() string {
+	if x != nil {
+		return x.Before
+	}
+	return ""
+}
+
 type MailboxResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Ok            bool                   `protobuf:"varint,1,opt,name=ok,proto3" json:"ok,omitempty"`
-	Mailbox       []*MailboxEntry        `protobuf:"bytes,2,rep,name=mailbox,proto3" json:"mailbox,omitempty"`
+	state   protoimpl.MessageState `protogen:"open.v1"`
+	Ok      bool                   `protobuf:"varint,1,opt,name=ok,proto3" json:"ok,omitempty"`
+	Mailbox []*MailboxEntry        `protobuf:"bytes,2,rep,name=mailbox,proto3" json:"mailbox,omitempty"`
+	// True when more (older) entries exist beyond this page.
+	HasMore       bool `protobuf:"varint,3,opt,name=has_more,json=hasMore,proto3" json:"has_more,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2600,6 +2624,13 @@ func (x *MailboxResponse) GetMailbox() []*MailboxEntry {
 		return x.Mailbox
 	}
 	return nil
+}
+
+func (x *MailboxResponse) GetHasMore() bool {
+	if x != nil {
+		return x.HasMore
+	}
+	return false
 }
 
 type UpdateSettingsRequest struct {
@@ -6545,12 +6576,15 @@ const file_agent_v1_agent_proto_rawDesc = "" +
 	"\fStateRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\">\n" +
 	"\rStateResponse\x12-\n" +
-	"\x05state\x18\x01 \x01(\v2\x17.google.protobuf.StructR\x05state\" \n" +
+	"\x05state\x18\x01 \x01(\v2\x17.google.protobuf.StructR\x05state\"N\n" +
 	"\x0eMailboxRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\"S\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x14\n" +
+	"\x05limit\x18\x02 \x01(\x05R\x05limit\x12\x16\n" +
+	"\x06before\x18\x03 \x01(\tR\x06before\"n\n" +
 	"\x0fMailboxResponse\x12\x0e\n" +
 	"\x02ok\x18\x01 \x01(\bR\x02ok\x120\n" +
-	"\amailbox\x18\x02 \x03(\v2\x16.agent.v1.MailboxEntryR\amailbox\"\x87\x01\n" +
+	"\amailbox\x18\x02 \x03(\v2\x16.agent.v1.MailboxEntryR\amailbox\x12\x19\n" +
+	"\bhas_more\x18\x03 \x01(\bR\ahasMore\"\x87\x01\n" +
 	"\x15UpdateSettingsRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x14\n" +
 	"\x05model\x18\x02 \x01(\tR\x05model\x12\x16\n" +
